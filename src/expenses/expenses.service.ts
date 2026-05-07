@@ -1,11 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Expense } from './expense.entity';
+import { Expense, MoneyType } from './expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { QueryExpenseDto } from './dto/query-expense.dto';
 import { CategoriesService } from '../categories/categories.service';
+import { ExchangeRateService } from './exchange-rate.service';
 
 @Injectable()
 export class ExpensesService {
@@ -15,12 +16,18 @@ export class ExpensesService {
     @InjectRepository(Expense)
     private readonly expenseRepository: Repository<Expense>,
     private readonly categoriesService: CategoriesService,
+    private readonly exchangeRateService: ExchangeRateService,
   ) {}
 
   async create(dto: CreateExpenseDto): Promise<Expense> {
     try {
       await this.categoriesService.findOne(dto.categoryId);
       const expense = this.expenseRepository.create(dto);
+
+      if (dto.moneyType === MoneyType.USD) {
+        expense.usdToArsRate = await this.exchangeRateService.getUsdToArsOfficialRate();
+      }
+
       const saved = await this.expenseRepository.save(expense);
       this.logger.log(`Created expense: ${saved.description} $${saved.amount} (id: ${saved.id})`);
       return saved;

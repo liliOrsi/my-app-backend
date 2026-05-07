@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsInt, IsOptional, IsPositive } from 'class-validator';
-import { ExpenseType } from '../expense.entity';
+import { ExpenseType, MoneyType } from '../expense.entity';
 import { Transform } from 'class-transformer';
 
 export class QueryExpenseDto {
@@ -14,6 +14,10 @@ export class QueryExpenseDto {
   @IsEnum(ExpenseType)
   @IsOptional()
   type?: ExpenseType;
+
+  @IsEnum(MoneyType)
+  @IsOptional()
+  moneyType!: MoneyType;
 
   @Transform(({ value }) => parseInt(value))
   @IsInt()

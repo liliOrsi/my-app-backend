@@ -6,6 +6,11 @@ export enum ExpenseType {
   VARIABLE = 'VARIABLE',
 }
 
+export enum MoneyType {
+  ARS = 'ARS',
+  USD = 'USD',
+}
+
 @Entity('expenses')
 export class Expense {
   @PrimaryGeneratedColumn()
@@ -22,6 +27,12 @@ export class Expense {
 
   @Column({ type: 'enum', enum: ExpenseType })
   type!: ExpenseType;
+
+  @Column({ type: 'enum', enum: MoneyType, default: MoneyType[0] })
+  moneyType!: MoneyType;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  usdToArsRate!: number | null;
 
   @Column({ default: false })
   isRecurring!: boolean;

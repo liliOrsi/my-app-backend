@@ -11,7 +11,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { ExpenseType } from '../expense.entity';
+import { ExpenseType, MoneyType } from '../expense.entity';
 
 export class CreateExpenseDto {
   @IsString()
@@ -27,6 +27,9 @@ export class CreateExpenseDto {
 
   @IsEnum(ExpenseType)
   type!: ExpenseType;
+
+  @IsEnum(MoneyType)
+  moneyType!: MoneyType;
 
   @IsBoolean()
   @IsOptional()
