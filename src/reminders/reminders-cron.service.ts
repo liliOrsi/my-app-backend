@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { RemindersService } from './reminders.service';
 
 @Injectable()
@@ -8,18 +8,30 @@ export class RemindersCronService {
 
   constructor(private readonly remindersService: RemindersService) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron('* * * * *', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  })
   async handleRemindersCron() {
     const startedAt = Date.now();
 
-    this.logger.log('CRON START | Checking pending reminders...');
+    const nowArgentina = new Intl.DateTimeFormat('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      dateStyle: 'short',
+      timeStyle: 'medium',
+    }).format(new Date());
+
+    this.logger.log(
+      `CRON START | Checking pending reminders... | Argentina time=${nowArgentina}`,
+    );
 
     try {
       await this.remindersService.processPendingReminders();
 
       const durationMs = Date.now() - startedAt;
 
-      this.logger.log(`CRON END | Reminders processed successfully | ${durationMs}ms`);
+      this.logger.log(
+        `CRON END | Reminders processed successfully | ${durationMs}ms | Argentina time=${nowArgentina}`,
+      );
     } catch (error) {
       const durationMs = Date.now() - startedAt;
 
@@ -29,7 +41,7 @@ export class RemindersCronService {
       const stack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(
-        `CRON ERROR | Failed processing reminders | ${durationMs}ms | message=${message}`,
+        `CRON ERROR | Failed processing reminders | ${durationMs}ms | message=${message} | Argentina time=${nowArgentina}`,
         stack,
       );
     }

@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: mi-app
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
+      TZ: America/Argentina/Buenos_Aires
+      PGTZ: America/Argentina/Buenos_Aires
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
