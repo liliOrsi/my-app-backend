@@ -7,10 +7,16 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { IncomesModule } from './incomes/incomes.module';
 import { ImportModule } from './import/import.module';
 import { BalanceModule } from './balance/balance.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { ScheduleModule } from '@nestjs/schedule';
+
 
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
@@ -28,6 +34,9 @@ import { BalanceModule } from './balance/balance.module';
     IncomesModule,
     ImportModule,
     BalanceModule,
+    UsersModule,
+    AuthModule,
+    RemindersModule
   ],
   controllers: [],
   providers: [],
