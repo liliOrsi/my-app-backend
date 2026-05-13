@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { Resend } from 'resend';
 
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -32,8 +34,7 @@ export class MailService {
     );
 
     try {
-      const from =
-        process.env.RESEND_FROM ?? 'Recordatorios <onboarding@resend.dev>';
+      const from = this.getFromAddress();
 
       this.logger.debug(`Sending reminder email with Resend | from=${from}`);
 
@@ -81,118 +82,122 @@ export class MailService {
     }
   }
 
-  private buildReminderTemplate(params: {
-    description: string;
-    formattedDate: string;
-  }) {
-    const { description, formattedDate } = params;
+  private getFromAddress() {
+    const from =
+      process.env.RESEND_FROM?.trim() || 'Recordatorios <onboarding@resend.dev>';
 
-    return `
-      <!DOCTYPE html>
-      <html lang="es">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Recordatorio pendiente</title>
-        </head>
+    const isValidFrom =
+      /^[^<>@\s]+@[^<>@\s]+\.[^<>@\s]+$/.test(from) ||
+      /^.+\s<[^<>@\s]+@[^<>@\s]+\.[^<>@\s]+>$/.test(from);
 
-        <body style="margin:0; padding:0; background:#0B0D13; font-family:Arial, Helvetica, sans-serif; color:#E6E8EE;">
-          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#0B0D13; padding:32px 16px;">
-            <tr>
-              <td align="center">
-                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px; background:#11141D; border:1px solid rgba(255,255,255,0.08); border-radius:24px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,0.35);">
-                  
-                  <tr>
-                    <td style="height:4px; background:linear-gradient(90deg,#6C63FF,#38BDF8,#34D399);"></td>
-                  </tr>
+    if (!isValidFrom) {
+      this.logger.error(
+        `Invalid RESEND_FROM format | value="${from}" | expected="email@example.com" or "Name <email@example.com>"`,
+      );
 
-                  <tr>
-                    <td style="padding:32px 32px 20px;">
-                      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                        <tr>
-                          <td>
-                            <div style="display:inline-block; padding:8px 12px; border-radius:999px; background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.24); color:#A8A2FF; font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;">
-                              Recordatorio
-                            </div>
-                          </td>
-                        </tr>
-                      </table>
+      throw new InternalServerErrorException(
+        'Invalid RESEND_FROM format. Use email@example.com or Name <email@example.com>',
+      );
+    }
 
-                      <h1 style="margin:22px 0 8px; font-size:30px; line-height:1.15; color:#FFFFFF; font-weight:800;">
-                        Tenés un recordatorio pendiente
-                      </h1>
-
-                      <p style="margin:0; color:#8D94AA; font-size:15px; line-height:1.6;">
-                        GastoFácil te avisa sobre una tarea programada.
-                      </p>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:8px 32px 0;">
-                      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#0D1018; border:1px solid rgba(255,255,255,0.07); border-radius:18px;">
-                        <tr>
-                          <td style="padding:22px;">
-                            <p style="margin:0 0 10px; color:#6B7188; font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase;">
-                              Descripción
-                            </p>
-
-                            <p style="margin:0; color:#F5F7FB; font-size:18px; line-height:1.55; font-weight:700;">
-                              ${description}
-                            </p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:16px 32px 0;">
-                      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:rgba(108,99,255,0.08); border:1px solid rgba(108,99,255,0.18); border-radius:18px;">
-                        <tr>
-                          <td style="padding:18px 20px;">
-                            <p style="margin:0 0 8px; color:#A8A2FF; font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase;">
-                              Fecha y hora
-                            </p>
-
-                            <p style="margin:0; color:#FFFFFF; font-size:17px; line-height:1.5; font-weight:800;">
-                              ${formattedDate}
-                            </p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:28px 32px 8px;">
-                      <div style="height:1px; background:rgba(255,255,255,0.08);"></div>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:8px 32px 32px;">
-                      <p style="margin:0; color:#6B7188; font-size:12px; line-height:1.6;">
-                        Este email fue enviado automáticamente por GastoFácil. Si ya realizaste esta tarea, podés ignorar este mensaje.
-                      </p>
-                    </td>
-                  </tr>
-
-                </table>
-
-                <p style="margin:18px 0 0; color:#424761; font-size:12px;">
-                  GastoFácil · Control de gastos
-                </p>
-              </td>
-            </tr>
-          </table>
-        </body>
-      </html>
-    `;
+    return from;
   }
 
+private buildReminderTemplate(params: {
+  description: string;
+  formattedDate: string;
+}) {
+  const { description, formattedDate } = params;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Recordatorio pendiente</title>
+      </head>
+
+      <body style="margin:0; padding:0; background-color:#0B0D13; font-family:Arial, Helvetica, sans-serif; color:#E6E8EE;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#0B0D13; margin:0; padding:20px 12px;">
+          <tr>
+            <td align="center">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width:520px; background-color:#11141D; border:1px solid #202534; border-radius:16px;">
+                
+                <tr>
+                  <td style="padding:24px 20px 12px 20px;">
+                    <div style="display:inline-block; padding:6px 10px; border-radius:999px; background-color:#1A1F33; border:1px solid #313B66; color:#A8A2FF; font-size:11px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">
+                      Recordatorio
+                    </div>
+
+                    <h1 style="margin:18px 0 8px 0; font-size:28px; line-height:1.2; color:#FFFFFF;">
+                      Tenés un recordatorio pendiente
+                    </h1>
+
+                    <p style="margin:0; font-size:15px; line-height:1.5; color:#9AA3B2;">
+                      GastoFácil te avisa sobre una tarea programada.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:12px 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#0D1018; border:1px solid #202534; border-radius:12px;">
+                      <tr>
+                        <td style="padding:16px;">
+                          <p style="margin:0 0 8px 0; font-size:11px; color:#8D94AA; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">
+                            Descripción
+                          </p>
+                          <p style="margin:0; font-size:18px; line-height:1.4; color:#FFFFFF; font-weight:bold;">
+                            ${description}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 20px 12px 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="background-color:#151936; border:1px solid #2D3767; border-radius:12px;">
+                      <tr>
+                        <td style="padding:16px;">
+                          <p style="margin:0 0 8px 0; font-size:11px; color:#A8A2FF; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">
+                            Fecha y hora
+                          </p>
+                          <p style="margin:0; font-size:16px; line-height:1.4; color:#FFFFFF; font-weight:bold;">
+                            ${formattedDate}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:8px 20px 20px 20px;">
+                    <div style="height:1px; background-color:#202534; margin-bottom:14px;"></div>
+                    <p style="margin:0; font-size:12px; line-height:1.5; color:#7E8798;">
+                      Este email fue enviado automáticamente por GastoFácil. Si ya realizaste esta tarea, podés ignorar este mensaje.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+
+              <p style="margin:14px 0 0 0; font-size:12px; color:#5E6678;">
+                GastoFácil · Control de gastos
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+}
   private formatDate(date: Date) {
     return date.toLocaleString('es-AR', {
+      timeZone: ARGENTINA_TIME_ZONE,
       weekday: 'long',
       day: '2-digit',
       month: 'long',
