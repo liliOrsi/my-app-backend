@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { IsDateString, IsIn, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { Auth } from '../auth/decorators';
 import { BalanceService } from './balance.service';
 
 class SetBalanceDto {
@@ -9,6 +10,7 @@ class SetBalanceDto {
   @IsIn(['banco', 'efectivo']) @IsOptional() account?: string;
 }
 
+@Auth()
 @Controller('balance')
 export class BalanceController {
   constructor(private readonly balanceService: BalanceService) {}

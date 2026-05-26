@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Auth } from '../auth/decorators';
 import { CreateReminderDto } from './dto/create-reminders.dto';
 import { RemindersService } from './reminders.service';
 
+@Auth()
 @Controller('reminders')
 export class RemindersController {
   constructor(private readonly remindersService: RemindersService) {}

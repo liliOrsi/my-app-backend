@@ -3,8 +3,10 @@ import {
   UseInterceptors, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Auth } from '../auth/decorators';
 import { ImportService, ParsedRow } from './import.service';
 
+@Auth()
 @Controller('import')
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
