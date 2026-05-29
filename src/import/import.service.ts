@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import { Expense } from '../expenses/expense.entity';
 import { Income, IncomeSource } from '../incomes/income.entity';
+import { Category } from '../categories/category.entity';
 import { IncomesService } from '../incomes/incomes.service';
 import { BalanceService } from '../balance/balance.service';
 
@@ -40,6 +41,8 @@ export class ImportService {
     private readonly expenseRepo: Repository<Expense>,
     @InjectRepository(Income)
     private readonly incomeRepo: Repository<Income>,
+    @InjectRepository(Category)
+    private readonly categoryRepo: Repository<Category>,
     private readonly incomesService: IncomesService,
     private readonly balanceService: BalanceService,
   ) {}
@@ -344,6 +347,15 @@ export class ImportService {
   ): Promise<{ createdExpenses: number; createdIncomes: number; batchId: string }> {
     const batchId = randomUUID();
 
+    // Resolve categoryId — fall back to first available if provided ID doesn't exist
+    let resolvedCategoryId = defaultCategoryId;
+    const catExists = await this.categoryRepo.findOne({ where: { id: defaultCategoryId } });
+    if (!catExists) {
+      const firstCat = await this.categoryRepo.findOne({ where: {}, order: { id: 'ASC' } });
+      if (!firstCat) throw new Error('No hay categorías disponibles. Creá una antes de importar.');
+      resolvedCategoryId = firstCat.id;
+    }
+
     if (balanceAmount !== undefined && balanceDate) {
       await this.balanceService.set(balanceAmount, balanceDate, 'bbva_import', 'banco', batchId);
     }
@@ -357,7 +369,7 @@ export class ImportService {
         date:           row.date,
         type:           'VARIABLE' as any,
         moneyType:      'ARS' as any,
-        categoryId:     defaultCategoryId,
+        categoryId:     resolvedCategoryId,
         externalId:     row.externalId ?? null,
         fromAccount:    'banco',
         importSource:   'bbva_import',
