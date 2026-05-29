@@ -45,6 +45,12 @@ export class ImportService {
   ) {}
 
   parseExcel(buffer: Buffer): ParsedRow[] {
+    // Detect CSV (no-header format: date,description,debit,credit,...)
+    const text = buffer.toString('utf8', 0, 200).trim();
+    if (text.startsWith('0') || /^\d{2}\/\d{2}\/\d{2}/.test(text)) {
+      return this.parseCsvNoHeader(buffer);
+    }
+
     const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const raw = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null });
@@ -142,6 +148,48 @@ export class ImportService {
       const externalId = idCol !== -1 ? String(row[idCol] ?? '').trim() || undefined : undefined;
 
       rows.push({ date, description, amount, kind, externalId, balance });
+    }
+
+    return rows;
+  }
+
+  private parseCsvNoHeader(buffer: Buffer): ParsedRow[] {
+    const lines = buffer.toString('utf8').split('\n').map(l => l.trim()).filter(Boolean);
+    const rows: ParsedRow[] = [];
+
+    for (const line of lines) {
+      const cols = line.split(',');
+      if (cols.length < 3) continue;
+
+      // col 0: date MM/DD/YY or DD/MM/YY
+      const rawDate = cols[0].trim();
+      const parts = rawDate.split('/');
+      if (parts.length !== 3) continue;
+      let date: string;
+      const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      // MM/DD/YY → YYYY-MM-DD
+      date = `${y}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+
+      const description = cols[1].trim();
+      if (!description) continue;
+
+      const debit  = parseFloat(cols[2].trim());
+      const credit = cols[3] ? parseFloat(cols[3].trim()) : NaN;
+
+      let amount: number;
+      let kind: 'expense' | 'income';
+
+      if (!isNaN(credit) && credit > 0) {
+        amount = credit;
+        kind = 'income';
+      } else if (!isNaN(debit) && debit > 0) {
+        amount = debit;
+        kind = 'expense';
+      } else {
+        continue;
+      }
+
+      rows.push({ date, description, amount, kind });
     }
 
     return rows;

@@ -3,6 +3,7 @@ import {
   UseInterceptors, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { Auth } from '../auth/decorators';
 import { ImportService, ParsedRow } from './import.service';
 
@@ -12,7 +13,7 @@ export class ImportController {
   constructor(private readonly importService: ImportService) {}
 
   @Post('preview')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async preview(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
     const rows = this.importService.parseExcel(file.buffer);
