@@ -18,6 +18,9 @@ export interface ParsedRow {
   kind: 'expense' | 'income';
   externalId?: string;
   balance?: number;
+  categoryId?: number;
+  type?: string;
+  source?: string;
 }
 
 export interface PreviewItem {
@@ -367,9 +370,9 @@ export class ImportService {
         description:    row.description,
         amount:         row.amount,
         date:           row.date,
-        type:           'VARIABLE' as any,
+        type:           (row.type ?? 'VARIABLE') as any,
         moneyType:      'ARS' as any,
-        categoryId:     resolvedCategoryId,
+        categoryId:     row.categoryId ?? resolvedCategoryId,
         externalId:     row.externalId ?? null,
         fromAccount:    'banco',
         importSource:   'bbva_import',
@@ -380,12 +383,15 @@ export class ImportService {
     }
 
     for (const row of incomes) {
+      const source = row.source
+        ? (IncomeSource[row.source as keyof typeof IncomeSource] ?? IncomeSource.TRANSFER)
+        : IncomeSource.TRANSFER;
       const income = this.incomeRepo.create({
         description:    row.description,
         amount:         row.amount,
         date:           row.date,
         moneyType:      'ARS' as any,
-        source:         IncomeSource.TRANSFER,
+        source,
         externalId:     row.externalId ?? null,
         fromAccount:    'banco',
         importSource:   'bbva_import',
