@@ -370,7 +370,7 @@ export class ImportService {
         description:    row.description,
         amount:         row.amount,
         date:           row.date,
-        type:           (row.type ?? 'VARIABLE') as any,
+        type:           'VARIABLE' as any,
         moneyType:      'ARS' as any,
         categoryId:     row.categoryId ?? resolvedCategoryId,
         externalId:     row.externalId ?? null,
